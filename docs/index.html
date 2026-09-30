@@ -1,0 +1,402 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Produktvideo aus CAD</title>
+  <meta name="description" content="Drei nahtlose Web-Loops aus einem CAD-Modell: Drehung und Zusammenbau, mit und ohne Explosionsanimation in der Datei.">
+  <meta property="og:title" content="Produktvideo aus CAD">
+  <meta property="og:description" content="Drehung und Zusammenbau als nahtlose Web-Loops, gerendert per Script aus einem CAD-Modell.">
+  <meta property="og:type" content="website">
+  <meta property="og:image" content="https://luuc4.github.io/cad-render-demo/media/radial-engine-assembly-file-poster.jpg">
+  <meta name="color-scheme" content="light">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='11' fill='none' stroke='%23e8590c' stroke-width='6'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow:ital,wght@0,400;0,500;0,600;1,400&family=Barlow+Semi+Condensed:wght@500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      /* Papier muss exakt #fff sein: die Videos haben denselben Hintergrund und gehen nahtlos in die Seite über */
+      --paper: #ffffff;
+      --ink: #262a30;
+      --steel: #697079;
+      --rule: #e2e5e9;
+      --tint: #f4f5f7;
+      --file: #e8590c;      /* Orange des Motors: Animation aus der Datei */
+      --auto: #0a7fcc;      /* Eloxal-Blau: automatisch berechnet */
+      --turn: #8a9099;      /* Stahl: Drehung */
+      --display: "Barlow Semi Condensed", "Barlow", system-ui, sans-serif;
+      --text: "Barlow", system-ui, sans-serif;
+      --wrap: 1240px;
+      --gutter: clamp(16px, 4vw, 40px);
+    }
+    * { box-sizing: border-box; }
+    html { -webkit-text-size-adjust: 100%; }
+    body {
+      margin: 0;
+      background: var(--paper);
+      color: var(--ink);
+      font: 400 18px/1.55 var(--text);
+      font-variant-numeric: tabular-nums;
+    }
+    a { color: inherit; text-decoration-color: var(--file); text-decoration-thickness: 2px; text-underline-offset: 3px; }
+    a:hover { color: var(--file); }
+    :focus-visible { outline: 3px solid var(--auto); outline-offset: 3px; border-radius: 2px; }
+    .wrap { max-width: var(--wrap); margin: 0 auto; padding: 0 var(--gutter); }
+
+    h1, h2, h3 { font-family: var(--display); font-weight: 600; margin: 0; }
+    h1 { font-size: clamp(40px, 5.6vw, 68px); line-height: 1.02; letter-spacing: -0.012em; max-width: 13ch; }
+    h2 { font-size: clamp(30px, 3.4vw, 42px); line-height: 1.08; max-width: 24ch; }
+    h3 { font-size: 22px; line-height: 1.2; font-weight: 500; }
+    p { margin: 0; max-width: 62ch; }
+    .lead { font-size: 21px; line-height: 1.5; color: var(--ink); }
+    .quiet { color: var(--steel); }
+
+    /* Kopf */
+    .top { display: flex; justify-content: space-between; align-items: baseline; padding: 22px 0; font-size: 16px; }
+    .mark { font-family: var(--display); font-weight: 600; font-size: 19px; text-decoration: none; }
+    .mark span { color: var(--file); }
+
+    /* Hero: Text links, Drehung rechts */
+    .hero { display: grid; grid-template-columns: 5fr 7fr; gap: 24px 48px; align-items: center; padding: 40px 0 72px; }
+    .hero .lead { margin-top: 24px; }
+
+    /* Video + Ablaufleiste */
+    figure { margin: 0; }
+    video { display: block; width: 100%; height: auto; aspect-ratio: 16 / 9; background: var(--paper); }
+    .timeline { --p: 0; position: relative; margin-top: 10px; }
+    .phases { display: flex; gap: 3px; height: 8px; }
+    .phases span { border-radius: 1px; background: var(--c); }
+    .phases .still { opacity: .28; }
+    .phases .move { opacity: .6; }
+    .phase-labels { display: flex; gap: 3px; margin-top: 6px; font-size: 14px; color: var(--steel); line-height: 1.25; }
+    .phase-labels span { min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: clip; }
+    .head {
+      position: absolute; top: -5px; left: calc(var(--p) * 100%);
+      width: 2px; height: 18px; margin-left: -1px; background: var(--ink);
+    }
+    .head::after { content: ""; position: absolute; left: -3px; top: -6px; width: 8px; height: 8px; border-radius: 50%; background: var(--ink); }
+    figcaption { margin-top: 22px; display: grid; gap: 8px; }
+    .specs { display: flex; flex-wrap: wrap; gap: 4px 20px; margin: 4px 0 0; font-size: 15px; color: var(--steel); }
+    .specs div { display: flex; gap: 6px; }
+    .specs dt { margin: 0; }
+    .specs dd { margin: 0; color: var(--ink); }
+
+    /* Abschnitte */
+    section { padding: 72px 0; border-top: 1px solid var(--rule); }
+    .intro { display: grid; gap: 16px; margin-bottom: 40px; }
+    .pair { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; }
+    .swatch { display: inline-block; width: 12px; height: 12px; border-radius: 2px; background: var(--c); margin-right: 10px; vertical-align: 1px; }
+    .controls { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 16px; margin-top: 32px; }
+    button {
+      font: 500 16px/1 var(--text); color: var(--ink); background: var(--paper);
+      border: 1.5px solid var(--ink); border-radius: 3px; padding: 11px 16px; cursor: pointer;
+    }
+    button:hover { background: var(--tint); }
+    .controls p { font-size: 15px; color: var(--steel); }
+
+    /* Vergleichstabelle */
+    table { width: 100%; border-collapse: collapse; margin-top: 56px; font-size: 17px; }
+    th, td { text-align: left; vertical-align: top; padding: 14px 16px 14px 0; border-bottom: 1px solid var(--rule); }
+    thead th { font-family: var(--display); font-weight: 600; font-size: 19px; border-bottom: 2px solid var(--ink); }
+    tbody th { font-weight: 500; width: 22%; }
+    td { width: 39%; }
+
+    /* Datei-Anforderungen */
+    .needs { display: grid; grid-template-columns: 1fr 1fr; gap: 48px; margin-top: 40px; }
+    .needs ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 18px; }
+    .needs li { padding-left: 22px; position: relative; max-width: 58ch; }
+    .needs li::before { content: ""; position: absolute; left: 0; top: .62em; width: 10px; height: 2px; background: var(--ink); }
+    .needs strong { font-weight: 600; }
+    .warning { border: 2px solid var(--file); border-radius: 4px; padding: 26px 28px; display: grid; gap: 14px; align-content: start; }
+    .warning h3 { font-weight: 600; }
+    .warning svg { width: 100%; max-width: 440px; height: auto; margin-top: 6px; }
+
+    /* Einbindung */
+    .embed { display: grid; grid-template-columns: 5fr 7fr; gap: 48px; margin-top: 40px; align-items: start; }
+    .embed ul { margin: 0; padding-left: 20px; display: grid; gap: 10px; }
+    pre {
+      margin: 0; padding: 22px 24px; background: var(--tint); border-radius: 4px; overflow-x: auto;
+      font: 14px/1.6 ui-monospace, "SF Mono", Menlo, Consolas, monospace; color: var(--ink);
+    }
+
+    /* Schriftfeld wie auf einer technischen Zeichnung */
+    footer { padding: 72px 0 56px; }
+    .titleblock { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; border: 1.5px solid var(--ink); font-size: 15px; }
+    .titleblock > div { padding: 14px 16px; border-left: 1px solid var(--ink); display: grid; gap: 4px; align-content: start; }
+    .titleblock > div:first-child { border-left: 0; }
+    .titleblock .k { color: var(--steel); font-size: 13px; }
+
+    @media (max-width: 900px) {
+      .hero, .pair, .needs, .embed { grid-template-columns: 1fr; }
+      .hero { padding-top: 16px; }
+      .titleblock { grid-template-columns: 1fr 1fr; }
+      .titleblock > div:nth-child(3) { border-left: 0; }
+      .titleblock > div:nth-child(n+3) { border-top: 1px solid var(--ink); }
+      .titleblock > div:first-child { grid-column: 1 / -1; border-bottom: 1px solid var(--ink); }
+      .titleblock > div:nth-child(2) { border-left: 0; }
+      .titleblock > div:nth-child(3) { border-top: 0; border-left: 1px solid var(--ink); }
+      .titleblock > div:nth-child(4) { grid-column: 1 / -1; border-left: 0; }
+      table { font-size: 16px; }
+      tbody th { width: 30%; }
+    }
+    @media (max-width: 560px) {
+      body { font-size: 17px; }
+      .lead { font-size: 19px; }
+      thead { display: none; }
+      table, tbody, tr, th, td { display: block; width: 100%; }
+      tbody tr { padding: 14px 0; border-bottom: 1px solid var(--rule); }
+      tbody th, td { border: 0; padding: 4px 0; }
+      td::before { content: attr(data-label); display: block; font-size: 14px; color: var(--steel); }
+      .phase-labels { font-size: 13px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header class="top">
+      <a class="mark" href="./">Produktvideo aus CAD<span>.</span></a>
+      <a href="https://github.com/luuc4/cad-render-demo">Quellcode auf GitHub</a>
+    </header>
+
+    <main>
+      <div class="hero">
+        <div>
+          <h1>Aus dem CAD&#8209;Modell wird ein Produktvideo</h1>
+          <p class="lead">Drei nahtlose Loops aus derselben Datei: eine Drehung und zweimal der Zusammenbau. Ein Script rendert sie in Blender und macht daraus kleine Web-Videos, die auf einer weißen Seite ohne sichtbaren Rand stehen.</p>
+        </div>
+        <figure>
+          <video data-video autoplay muted loop playsinline preload="auto" width="960" height="540"
+                 poster="media/radial-engine-turntable-poster.jpg"
+                 aria-label="Sternmotor dreht sich einmal um 360 Grad">
+            <source src="media/radial-engine-turntable.webm" type="video/webm">
+            <source src="media/radial-engine-turntable.mp4" type="video/mp4">
+          </video>
+          <div class="timeline" style="--c: var(--turn)" aria-hidden="true">
+            <div class="phases"><span class="move" style="flex: 4"></span></div>
+            <div class="phase-labels"><span style="flex: 4">eine Umdrehung, dann nahtlos von vorn</span></div>
+            <i class="head"></i>
+          </div>
+          <figcaption>
+            <h3>Drehung</h3>
+            <p class="quiet">Geht mit jedem Modell, auch mit einer einzelnen STL-Datei.</p>
+            <dl class="specs">
+              <div><dt>Länge</dt><dd>4 s</dd></div>
+              <div><dt>WebM</dt><dd data-size="turntable.webm">0,6 MB</dd></div>
+              <div><dt>MP4</dt><dd data-size="turntable.mp4">0,5 MB</dd></div>
+            </dl>
+          </figcaption>
+        </figure>
+      </div>
+
+      <section aria-labelledby="zusammenbau">
+        <div class="intro">
+          <h2 id="zusammenbau">Zusammenbau: mit oder ohne Animation in der Datei</h2>
+          <p>Für eine Drehung reicht jedes Modell. Für den Zusammenbau muss das Script wissen, welches Teil auf welchem Weg an seinen Platz fährt. Diese Wege kommen entweder aus der Datei oder werden aus der Form der Teile berechnet. Beide Videos laufen synchron, damit Sie den Unterschied direkt sehen.</p>
+        </div>
+
+        <div class="pair">
+          <figure>
+            <video data-video data-sync autoplay muted loop playsinline preload="auto" width="960" height="540"
+                   poster="media/radial-engine-assembly-file-poster.jpg"
+                   aria-label="Sternmotor setzt sich zusammen, Wege aus der Explosionsanimation der Datei">
+              <source src="media/radial-engine-assembly-file.webm" type="video/webm">
+              <source src="media/radial-engine-assembly-file.mp4" type="video/mp4">
+            </video>
+            <div class="timeline" style="--c: var(--file)" aria-hidden="true">
+              <div class="phases">
+                <span class="still" style="flex: .6"></span><span class="move" style="flex: 2.2"></span><span style="flex: 1.8"></span><span class="move" style="flex: 1"></span><span class="still" style="flex: .4"></span>
+              </div>
+              <div class="phase-labels">
+                <span style="flex: .6"></span><span style="flex: 2.2">setzt sich zusammen</span><span style="flex: 1.8">fertig</span><span style="flex: 1.4">auseinander</span>
+              </div>
+              <i class="head"></i>
+            </div>
+            <figcaption>
+              <h3><span class="swatch" style="--c: var(--file)"></span>Animation aus der Datei</h3>
+              <p class="quiet">Die Explosionsansicht hat der Konstrukteur angelegt. Jedes Teil fährt auf seiner Achse heraus, in der Reihenfolge der echten Montage.</p>
+              <dl class="specs">
+                <div><dt>Länge</dt><dd>6 s</dd></div>
+                <div><dt>WebM</dt><dd data-size="assembly-file.webm">1,0 MB</dd></div>
+                <div><dt>MP4</dt><dd data-size="assembly-file.mp4">0,8 MB</dd></div>
+              </dl>
+            </figcaption>
+          </figure>
+
+          <figure>
+            <video data-video data-sync autoplay muted loop playsinline preload="auto" width="960" height="540"
+                   poster="media/radial-engine-assembly-auto-poster.jpg"
+                   aria-label="Sternmotor setzt sich zusammen, Wege automatisch berechnet">
+              <source src="media/radial-engine-assembly-auto.webm" type="video/webm">
+              <source src="media/radial-engine-assembly-auto.mp4" type="video/mp4">
+            </video>
+            <div class="timeline" style="--c: var(--auto)" aria-hidden="true">
+              <div class="phases">
+                <span class="still" style="flex: .6"></span><span class="move" style="flex: 2.2"></span><span style="flex: 1.8"></span><span class="move" style="flex: 1"></span><span class="still" style="flex: .4"></span>
+              </div>
+              <div class="phase-labels">
+                <span style="flex: .6"></span><span style="flex: 2.2">setzt sich zusammen</span><span style="flex: 1.8">fertig</span><span style="flex: 1.4">auseinander</span>
+              </div>
+              <i class="head"></i>
+            </div>
+            <figcaption>
+              <h3><span class="swatch" style="--c: var(--auto)"></span>Automatisch berechnet</h3>
+              <p class="quiet">Die Animation der Datei wurde hier bewusst ignoriert. Das Script leitet die Wege aus der Form jedes Teils ab, so wie bei einer Datei ohne Animation.</p>
+              <dl class="specs">
+                <div><dt>Länge</dt><dd>6 s</dd></div>
+                <div><dt>WebM</dt><dd data-size="assembly-auto.webm">0,9 MB</dd></div>
+                <div><dt>MP4</dt><dd data-size="assembly-auto.mp4">0,8 MB</dd></div>
+              </dl>
+            </figcaption>
+          </figure>
+        </div>
+
+        <div class="controls">
+          <button type="button" data-restart>Beide von vorn starten</button>
+          <button type="button" data-toggle aria-pressed="false">Anhalten</button>
+          <p>Die Leiste unter jedem Video zeigt den Ablauf. Am Ende geht das Video ohne Schnitt in den Anfang über.</p>
+        </div>
+
+        <table>
+          <thead>
+            <tr><th scope="col"></th><th scope="col">Animation aus der Datei</th><th scope="col">Automatisch berechnet</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">Woher die Wege kommen</th>
+              <td data-label="Animation aus der Datei">Aus der Explosionsansicht, die im CAD- oder 3D-Programm angelegt und als Animation mit exportiert wurde, zum Beispiel in einer FBX- oder glTF-Datei.</td>
+              <td data-label="Automatisch berechnet">Aus der Form jedes Teils: Schrauben und Bolzen fahren längs heraus, Deckel, Scheiben und Platten senkrecht zur Fläche, alles andere von der Mitte weg.</td>
+            </tr>
+            <tr>
+              <th scope="row">Reihenfolge</th>
+              <td data-label="Animation aus der Datei">Wie bei der echten Montage.</td>
+              <td data-label="Automatisch berechnet">Innere Teile zuerst, äußere zuletzt.</td>
+            </tr>
+            <tr>
+              <th scope="row">Genauigkeit</th>
+              <td data-label="Animation aus der Datei">Mechanisch korrekt, kein Teil fährt durch ein anderes.</td>
+              <td data-label="Automatisch berechnet">Plausibel. Auf dem Weg können sich Teile durchdringen, bei Innenteilen fällt das eher auf.</td>
+            </tr>
+            <tr>
+              <th scope="row">Ihr Aufwand</th>
+              <td data-label="Animation aus der Datei">Explosionsansicht einmal anlegen und als Animation mit exportieren.</td>
+              <td data-label="Automatisch berechnet">Keiner, die Datei muss nur aus einzelnen Teilen bestehen.</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section aria-labelledby="datei">
+        <h2 id="datei">Welche Datei es braucht</h2>
+        <div class="needs">
+          <ul>
+            <li><strong>Jedes Bauteil als eigenes Objekt.</strong> So wie es im CAD als Körper oder Komponente angelegt ist: Gehäuse, Deckel, jede Schraube einzeln.</li>
+            <li><strong>Formate:</strong> FBX, glTF/GLB oder OBJ direkt. STEP wird vorher umgewandelt, zum Beispiel mit FreeCAD.</li>
+            <li><strong>Maßstab egal.</strong> Ob Millimeter oder Meter, das Script korrigiert den Maßstab beim Import.</li>
+            <li><strong>Für einen genauen Zusammenbau:</strong> die Explosionsansicht aus dem CAD als Animation in der Datei. Fehlt sie, berechnet das Script die Wege selbst.</li>
+            <li><strong>Farben und Oberflächen</strong> geben Sie als Farbwerte vor, etwa Ihre Markenfarbe als Hex-Wert.</li>
+          </ul>
+
+          <div class="warning" role="note">
+            <h3>Keine verschmolzene STL-Datei</h3>
+            <p>Eine STL speichert nur Oberflächen, keine Bauteile. Wird beim Export alles zu einem Körper vereinigt, gibt es keine Teile mehr, die sich bewegen könnten. Eine Drehung geht dann noch, ein Zusammenbau nicht.</p>
+            <p class="quiet">Stecken die Teile in der STL noch als getrennte Hüllen, lassen sie sich wieder auseinandernehmen.</p>
+            <svg viewBox="0 0 440 150" role="img" aria-labelledby="stl-title">
+              <title id="stl-title">Links drei getrennte Teile mit eigenen Umrissen, rechts dieselbe Form als ein einziger verschmolzener Körper</title>
+              <g fill="none" stroke="#262a30" stroke-width="2">
+                <!-- getrennt: Platte, Zylinder, Schraube mit Abstand -->
+                <rect x="20" y="92" width="150" height="16" rx="2"/>
+                <rect x="58" y="44" width="74" height="40" rx="4"/>
+                <rect x="88" y="10" width="14" height="26" rx="2"/>
+                <rect x="80" y="4" width="30" height="8" rx="2"/>
+              </g>
+              <g fill="#262a30" stroke="none">
+                <!-- verschmolzen: eine Silhouette -->
+                <path d="M270 108 h150 a2 2 0 0 0 2-2 v-12 a2 2 0 0 0-2-2 h-38 v-40 a4 4 0 0 0-4-4 h-26 v-28 h6 a2 2 0 0 0 2-2 v-4 a2 2 0 0 0-2-2 h-26 a2 2 0 0 0-2 2 v4 a2 2 0 0 0 2 2 h6 v28 h-26 a4 4 0 0 0-4 4 v40 h-38 a2 2 0 0 0-2 2 v12 a2 2 0 0 0 2 2 z"/>
+              </g>
+              <g font-family="Barlow, system-ui, sans-serif" font-size="14" fill="#697079">
+                <text x="95" y="138" text-anchor="middle">getrennte Teile</text>
+                <text x="346" y="138" text-anchor="middle">verschmolzen</text>
+              </g>
+            </svg>
+          </div>
+        </div>
+      </section>
+
+      <section aria-labelledby="einbinden">
+        <h2 id="einbinden">So kommt das Video auf die Website</h2>
+        <div class="embed">
+          <ul>
+            <li>Zwei Dateien pro Video: WebM (VP9) für Chrome, Firefox und Edge, MP4 (H.264) für alle anderen.</li>
+            <li>Der Hintergrund ist pixelgenau die Farbe Ihrer Seite, hier #FFFFFF. Die Farbe ist frei wählbar.</li>
+            <li>Diese Demo läuft in 960×540, damit sie schnell lädt. Für die Website geht auch 1920×1080.</li>
+            <li>Wer in den Systemeinstellungen „Bewegung reduzieren“ aktiviert hat, sieht nur das Standbild.</li>
+          </ul>
+          <pre><code>&lt;video autoplay muted loop playsinline
+       poster="motor-poster.jpg"&gt;
+  &lt;source src="motor.webm" type="video/webm"&gt;
+  &lt;source src="motor.mp4" type="video/mp4"&gt;
+&lt;/video&gt;</code></pre>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <div class="titleblock">
+        <div>
+          <span class="k">Modell</span>
+          <span><a href="https://sketchfab.com/3d-models/3d-printable-radial-pneumatic-engine-3cbddbecd6c5462391e9936a3ccd7d32">3d Printable Radial Pneumatic Engine</a> von <a href="https://sketchfab.com/slava">Slava Z.</a>, Lizenz <a href="https://creativecommons.org/licenses/by/4.0/deed.de">CC BY 4.0</a>. Verändert: Materialien, Ausrichtung, Animation neu getaktet und für die dritte Variante neu berechnet.</span>
+        </div>
+        <div>
+          <span class="k">Werkzeuge</span>
+          <span>Blender 5.2 mit Cycles, ffmpeg</span>
+        </div>
+        <div>
+          <span class="k">Quellcode</span>
+          <span><a href="https://github.com/luuc4/cad-render-demo">github.com/luuc4/cad-render-demo</a></span>
+        </div>
+        <div>
+          <span class="k">Stand</span>
+          <span>30.09.2026</span>
+        </div>
+      </div>
+    </footer>
+  </div>
+
+  <script>
+    const videos = [...document.querySelectorAll('[data-video]')];
+    const synced = videos.filter(v => v.hasAttribute('data-sync'));
+    const toggle = document.querySelector('[data-toggle]');
+    const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    // Bei "Bewegung reduzieren": nichts startet von selbst, Steuerung über die Player-Knöpfe
+    if (reduced) videos.forEach(v => { v.removeAttribute('autoplay'); v.pause(); v.controls = true; });
+
+    function restart(list) {
+      list.forEach(v => { v.currentTime = 0; v.play().catch(() => {}); });
+      toggle.textContent = 'Anhalten';
+      toggle.setAttribute('aria-pressed', 'false');
+    }
+
+    // Die beiden Zusammenbau-Videos gemeinsam starten, sobald beide abspielbereit sind
+    const ready = v => v.readyState >= 3 ? Promise.resolve() : new Promise(r => v.addEventListener('canplay', r, { once: true }));
+    if (!reduced) Promise.all(synced.map(ready)).then(() => restart(synced));
+
+    document.querySelector('[data-restart]').addEventListener('click', () => restart(synced));
+    toggle.addEventListener('click', () => {
+      const pause = toggle.getAttribute('aria-pressed') === 'false';   // läuft gerade -> anhalten
+      if (pause) videos.forEach(v => v.pause());
+      else videos.forEach(v => v.play().catch(() => {}));
+      toggle.textContent = pause ? 'Abspielen' : 'Anhalten';
+      toggle.setAttribute('aria-pressed', String(pause));
+    });
+
+    // Abspielkopf der Ablaufleisten folgt dem Video
+    const pairs = videos.map(v => [v, v.closest('figure').querySelector('.timeline')]);
+    (function tick() {
+      pairs.forEach(([v, bar]) => { if (v.duration) bar.style.setProperty('--p', (v.currentTime / v.duration).toFixed(4)); });
+      requestAnimationFrame(tick);
+    })();
+  </script>
+</body>
+</html>

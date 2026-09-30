@@ -1,0 +1,13 @@
+# Modelldatei (CC BY 4.0, Download von Sketchfab, siehe README) – wird nicht mitverteilt
+source/
+
+# Render-Ausgaben und heruntergeladene Assets (reproduzierbar per Script)
+renders/
+assets/hdri/
+*.blend
+*.blend1
+
+# System / Werkzeuge
+.DS_Store
+__pycache__/
+.playwright-mcp/
